@@ -1,0 +1,5 @@
+# Стартовый скрипт без ошибок
+ls
+ls "my folder" file.txt
+cd docs
+exit

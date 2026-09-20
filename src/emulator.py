@@ -1,10 +1,14 @@
-"""Эмулятор оболочки UNIX-подобной ОС. Этап 1: REPL."""
+"""Эмулятор оболочки UNIX-подобной ОС. Этап 2: конфигурация."""
 
+import argparse
+import os
 import shlex
 import sys
 
-VFS_NAME = "myvfs"
+DEFAULT_VFS_NAME = "myvfs"
 PROMPT_SUFFIX = "$ "
+NOT_SET = "(не задан)"
+COMMENT_MARK = "#"
 EXIT_OK = 0
 MAX_CD_ARGS = 1
 
@@ -13,9 +17,16 @@ class ShellError(Exception):
     """Ошибка выполнения команды оболочки."""
 
 
-def make_prompt():
+def make_prompt(vfs_name=DEFAULT_VFS_NAME):
     """Возвращает приглашение к вводу с именем VFS."""
-    return f"{VFS_NAME}:{PROMPT_SUFFIX}"
+    return f"{vfs_name}:{PROMPT_SUFFIX}"
+
+
+def vfs_name_from_path(path):
+    """Возвращает имя VFS: имя файла из пути или имя по умолчанию."""
+    if not path:
+        return DEFAULT_VFS_NAME
+    return os.path.basename(path) or DEFAULT_VFS_NAME
 
 
 def parse_line(line):
@@ -68,19 +79,83 @@ def execute(tokens):
     handler(args)
 
 
+def execute_line(line):
+    """Разбирает и выполняет строку. Ошибки выбрасываются наружу."""
+    execute(parse_line(line))
+
+
 def run_line(line):
-    """Разбирает и выполняет одну строку, выводя ошибки в stderr."""
+    """Выполняет одну строку, выводя ошибки в stderr."""
     try:
-        execute(parse_line(line))
+        execute_line(line)
     except ShellError as error:
         print(error, file=sys.stderr)
 
 
-def main():
+def parse_args(argv=None):
+    """Разбирает параметры командной строки."""
+    parser = argparse.ArgumentParser(
+        description="Эмулятор оболочки UNIX-подобной ОС"
+    )
+    parser.add_argument(
+        "--vfs", metavar="ПУТЬ",
+        help="путь к физическому расположению VFS",
+    )
+    parser.add_argument(
+        "--script", metavar="ПУТЬ",
+        help="путь к стартовому скрипту",
+    )
+    return parser.parse_args(argv)
+
+
+def print_config(args):
+    """Выводит отладочную информацию обо всех заданных параметрах."""
+    print("[debug] параметры запуска:")
+    print(f"[debug]   vfs    = {args.vfs or NOT_SET}")
+    print(f"[debug]   script = {args.script or NOT_SET}")
+
+
+def read_script(path):
+    """Читает строки стартового скрипта. При ошибке — ShellError."""
+    try:
+        with open(path, encoding="utf-8") as file:
+            return file.read().splitlines()
+    except (OSError, UnicodeDecodeError) as error:
+        raise ShellError(f"скрипт не прочитан: {error}") from error
+
+
+def is_skipped(line):
+    """Пустые строки и строки-комментарии в скрипте пропускаются."""
+    stripped = line.strip()
+    return not stripped or stripped.startswith(COMMENT_MARK)
+
+
+def run_script(path, prompt):
+    """Выполняет стартовый скрипт, имитируя диалог с пользователем.
+
+    Ошибочные строки пропускаются, об ошибке сообщается в stderr.
+    """
+    try:
+        lines = read_script(path)
+    except ShellError as error:
+        print(error, file=sys.stderr)
+        return
+    for number, line in enumerate(lines, start=1):
+        if is_skipped(line):
+            continue
+        print(f"{prompt}{line}")
+        try:
+            execute_line(line)
+        except ShellError as error:
+            message = f"ошибка в строке {number} скрипта: {error}"
+            print(message, file=sys.stderr)
+
+
+def repl(prompt):
     """Запускает интерактивный цикл REPL."""
     while True:
         try:
-            line = input(make_prompt())
+            line = input(prompt)
         except EOFError:
             print()
             break
@@ -88,6 +163,16 @@ def main():
             print()
             continue
         run_line(line)
+
+
+def main(argv=None):
+    """Точка входа: разбор параметров, скрипт, затем REPL."""
+    args = parse_args(argv)
+    print_config(args)
+    prompt = make_prompt(vfs_name_from_path(args.vfs))
+    if args.script:
+        run_script(args.script, prompt)
+    repl(prompt)
 
 
 if __name__ == "__main__":
