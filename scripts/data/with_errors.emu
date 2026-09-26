@@ -3,4 +3,4 @@ ls
 foo
 cd a b
 ls "oops
-ls after_errors
+whoami

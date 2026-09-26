@@ -1,5 +1,5 @@
 # Стартовый скрипт без ошибок
 ls
-ls "my folder" file.txt
-cd docs
+whoami
+cd /
 exit

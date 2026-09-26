@@ -1,5 +1,6 @@
 """Тесты этапа 2: параметры запуска и стартовый скрипт."""
 
+import getpass
 import io
 import os
 import tempfile
@@ -63,15 +64,15 @@ class ScriptTests(unittest.TestCase):
 
     def test_input_and_output_shown(self):
         """На экране виден и ввод, и вывод."""
-        out, _ = run_script_text("ls a\n")
-        self.assertIn(PROMPT + "ls a", out)
-        self.assertIn("ls: аргументы", out)
+        out, _ = run_script_text("whoami\n")
+        self.assertIn(PROMPT + "whoami", out)
+        self.assertIn(getpass.getuser(), out)
 
     def test_errors_skipped(self):
         """Ошибочные строки пропускаются, остальные выполняются."""
-        out, err = run_script_text("foo\nls x\n")
+        out, err = run_script_text("foo\nwhoami\n")
         self.assertIn("строке 1", err)
-        self.assertIn("ls: аргументы", out)
+        self.assertIn(getpass.getuser(), out)
 
     def test_comments_and_blank(self):
         """Комментарии и пустые строки не выполняются."""

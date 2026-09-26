@@ -1,8 +1,6 @@
 """Тесты этапа 1: парсер и команды эмулятора."""
 
-import io
 import unittest
-from contextlib import redirect_stdout
 
 import emulator
 
@@ -48,13 +46,10 @@ class CommandTests(unittest.TestCase):
         with self.assertRaises(SystemExit):
             emulator.execute(["exit"])
 
-    def test_ls_stub_output(self):
-        """Заглушка ls печатает своё имя и аргументы."""
-        buffer = io.StringIO()
-        with redirect_stdout(buffer):
-            emulator.execute(["ls", "dir one"])
-        self.assertIn("ls", buffer.getvalue())
-        self.assertIn("dir one", buffer.getvalue())
+    def test_ls_needs_vfs(self):
+        """Без загруженной VFS команда ls сообщает об ошибке."""
+        with self.assertRaises(emulator.ShellError):
+            emulator.execute(["ls"])
 
 
 if __name__ == "__main__":

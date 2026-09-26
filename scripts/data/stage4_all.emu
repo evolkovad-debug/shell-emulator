@@ -1,0 +1,44 @@
+# Стартовый скрипт: все команды этапов 1-4 (запуск с vfs/deep.json)
+# --- whoami: обычный режим и ошибка ---
+whoami
+whoami лишний
+# --- cal: месяц, год, текущий месяц и ошибки ---
+cal 9 2026
+cal 2026
+cal
+cal 13 2026
+cal abc
+cal 9 2026 1
+# --- ls: разные режимы и ошибки ---
+ls
+ls -l
+ls home/user
+ls -l /home/user/docs
+ls /etc/hosts
+ls home etc
+ls nosuch
+ls -x
+# --- cd: относительный, абсолютный, .. и ошибки ---
+cd home/user
+cd docs
+cd ..
+cd /etc
+cd hosts
+cd nosuch
+cd a b
+cd
+# --- find: режимы и ошибки ---
+find
+find /home -name "*.txt"
+find home -type d
+find -type f -name "*.bin"
+find /etc/hosts
+find nosuch
+find -name
+find -type x
+find -foo x
+# --- служебная команда и общие ошибки ---
+vfs-info
+foo
+ls "oops
+exit

@@ -1,28 +1,40 @@
-"""Эмулятор оболочки UNIX-подобной ОС. Этап 3: VFS."""
+"""Эмулятор оболочки UNIX-подобной ОС. Этап 4: основные команды."""
 
 import argparse
 import os
 import shlex
 import sys
 
-from vfs import VfsError, describe, get_current, load_vfs, set_current
+from commands import COMMANDS
+from errors import ShellError
+from vfs import (
+    VfsError, empty_vfs, get_current, load_vfs, path_to_str, set_current,
+)
 
 DEFAULT_VFS_NAME = "myvfs"
 PROMPT_SUFFIX = "$ "
 NOT_SET = "(не задан)"
 COMMENT_MARK = "#"
-EXIT_OK = 0
 EXIT_ERROR = 1
-MAX_CD_ARGS = 1
+ROOT_DIR = "/"
 
 
-class ShellError(Exception):
-    """Ошибка выполнения команды оболочки."""
+def make_prompt(vfs_name=DEFAULT_VFS_NAME, cwd=ROOT_DIR):
+    """Возвращает приглашение к вводу: имя VFS и текущий каталог."""
+    return f"{vfs_name}:{cwd}{PROMPT_SUFFIX}"
 
 
-def make_prompt(vfs_name=DEFAULT_VFS_NAME):
-    """Возвращает приглашение к вводу с именем VFS."""
-    return f"{vfs_name}:{PROMPT_SUFFIX}"
+def current_prompt():
+    """Приглашение для загруженной VFS с учётом текущего каталога."""
+    current = get_current()
+    if current is None:
+        return make_prompt()
+    return make_prompt(current.name, path_to_str(current.cwd))
+
+
+def render_prompt(prompt):
+    """Приглашение может быть строкой или функцией без аргументов."""
+    return prompt() if callable(prompt) else prompt
 
 
 def vfs_name_from_path(path):
@@ -42,48 +54,6 @@ def parse_line(line):
         return shlex.split(line)
     except ValueError as error:
         raise ShellError(f"ошибка разбора: {error}") from error
-
-
-def print_stub(name, args):
-    """Печатает имя команды-заглушки и её аргументы."""
-    print(f"{name}: аргументы = {args}")
-
-
-def cmd_ls(args):
-    """Заглушка команды ls."""
-    print_stub("ls", args)
-
-
-def cmd_cd(args):
-    """Заглушка команды cd. Принимает не более одного аргумента."""
-    if len(args) > MAX_CD_ARGS:
-        raise ShellError("cd: слишком много аргументов")
-    print_stub("cd", args)
-
-
-def cmd_exit(args):
-    """Завершает работу эмулятора."""
-    if args:
-        raise ShellError("exit: команда не принимает аргументов")
-    raise SystemExit(EXIT_OK)
-
-
-def cmd_vfs_info(args):
-    """Служебная команда: сводка по загруженной VFS (только чтение)."""
-    if args:
-        raise ShellError("vfs-info: команда не принимает аргументов")
-    current = get_current()
-    if current is None:
-        raise ShellError("vfs-info: VFS не загружена")
-    print(describe(current))
-
-
-COMMANDS = {
-    "ls": cmd_ls,
-    "cd": cmd_cd,
-    "exit": cmd_exit,
-    "vfs-info": cmd_vfs_info,
-}
 
 
 def execute(tokens):
@@ -161,7 +131,7 @@ def run_script(path, prompt):
     for number, line in enumerate(lines, start=1):
         if is_skipped(line):
             continue
-        print(f"{prompt}{line}")
+        print(f"{render_prompt(prompt)}{line}")
         try:
             execute_line(line)
         except ShellError as error:
@@ -173,7 +143,7 @@ def repl(prompt):
     """Запускает интерактивный цикл REPL."""
     while True:
         try:
-            line = input(prompt)
+            line = input(render_prompt(prompt))
         except EOFError:
             print()
             break
@@ -198,10 +168,11 @@ def main(argv=None):
     print_config(args)
     if args.vfs:
         load_configured_vfs(args.vfs)
-    prompt = make_prompt(vfs_name_from_path(args.vfs))
+    else:
+        set_current(empty_vfs(DEFAULT_VFS_NAME))
     if args.script:
-        run_script(args.script, prompt)
-    repl(prompt)
+        run_script(args.script, current_prompt)
+    repl(current_prompt)
 
 
 if __name__ == "__main__":

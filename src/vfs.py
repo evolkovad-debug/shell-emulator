@@ -35,10 +35,11 @@ class Directory:
 
 @dataclass
 class Vfs:
-    """Виртуальная файловая система: имя и корневой каталог."""
+    """Виртуальная файловая система: имя, корень и текущий каталог."""
 
     name: str
     root: Directory
+    cwd: list = field(default_factory=list)
 
 
 def join_path(parent, name):
@@ -159,3 +160,57 @@ def set_current(vfs):
 def get_current():
     """Возвращает загруженную VFS или None, если её нет."""
     return _STATE["current"]
+
+
+CURRENT_DIR = "."
+PARENT_DIR = ".."
+EMPTY_NAME = ""
+
+
+class PathError(Exception):
+    """Ошибка поиска пути в VFS (нет такого узла, не каталог)."""
+
+
+def empty_vfs(name):
+    """Создаёт пустую VFS: один пустой корневой каталог."""
+    return Vfs(name, Directory())
+
+
+def node_at(root, parts):
+    """Возвращает узел по списку имён от корня (пути заведомо верны)."""
+    node = root
+    for name in parts:
+        node = node.children[name]
+    return node
+
+
+def descend(node, name):
+    """Возвращает вложенный узел по имени. Ошибки — PathError."""
+    if not isinstance(node, Directory):
+        raise PathError("не каталог")
+    child = node.children.get(name)
+    if child is None:
+        raise PathError("нет такого файла или каталога")
+    return child
+
+
+def lookup(vfs, text):
+    """Находит узел по абсолютному или относительному пути.
+
+    Возвращает пару: (список имён от корня, узел). Ошибки — PathError.
+    """
+    parts = [] if text.startswith(SEPARATOR) else list(vfs.cwd)
+    for name in text.split(SEPARATOR):
+        if name in (EMPTY_NAME, CURRENT_DIR):
+            continue
+        if name == PARENT_DIR:
+            del parts[-1:]
+        else:
+            descend(node_at(vfs.root, parts), name)
+            parts.append(name)
+    return parts, node_at(vfs.root, parts)
+
+
+def path_to_str(parts):
+    """Превращает список имён в путь: ['a', 'b'] -> '/a/b'."""
+    return SEPARATOR + SEPARATOR.join(parts)
