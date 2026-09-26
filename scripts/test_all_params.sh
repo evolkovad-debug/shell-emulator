@@ -2,5 +2,5 @@
 # Оба параметра вместе.
 cd "$(dirname "$0")/.." || exit 1
 echo "=== Параметры --vfs и --script ==="
-python3 src/emulator.py --vfs vfs/demo.json \
+python3 src/emulator.py --vfs vfs/several.json \
     --script scripts/data/good.emu

@@ -1,15 +1,18 @@
-"""Эмулятор оболочки UNIX-подобной ОС. Этап 2: конфигурация."""
+"""Эмулятор оболочки UNIX-подобной ОС. Этап 3: VFS."""
 
 import argparse
 import os
 import shlex
 import sys
 
+from vfs import VfsError, describe, get_current, load_vfs, set_current
+
 DEFAULT_VFS_NAME = "myvfs"
 PROMPT_SUFFIX = "$ "
 NOT_SET = "(не задан)"
 COMMENT_MARK = "#"
 EXIT_OK = 0
+EXIT_ERROR = 1
 MAX_CD_ARGS = 1
 
 
@@ -65,7 +68,22 @@ def cmd_exit(args):
     raise SystemExit(EXIT_OK)
 
 
-COMMANDS = {"ls": cmd_ls, "cd": cmd_cd, "exit": cmd_exit}
+def cmd_vfs_info(args):
+    """Служебная команда: сводка по загруженной VFS (только чтение)."""
+    if args:
+        raise ShellError("vfs-info: команда не принимает аргументов")
+    current = get_current()
+    if current is None:
+        raise ShellError("vfs-info: VFS не загружена")
+    print(describe(current))
+
+
+COMMANDS = {
+    "ls": cmd_ls,
+    "cd": cmd_cd,
+    "exit": cmd_exit,
+    "vfs-info": cmd_vfs_info,
+}
 
 
 def execute(tokens):
@@ -165,10 +183,21 @@ def repl(prompt):
         run_line(line)
 
 
+def load_configured_vfs(path):
+    """Загружает VFS из файла. При ошибке сообщает о ней и выходит."""
+    try:
+        set_current(load_vfs(path))
+    except VfsError as error:
+        print(f"ошибка загрузки VFS: {error}", file=sys.stderr)
+        raise SystemExit(EXIT_ERROR) from error
+
+
 def main(argv=None):
-    """Точка входа: разбор параметров, скрипт, затем REPL."""
+    """Точка входа: параметры, VFS, скрипт, затем REPL."""
     args = parse_args(argv)
     print_config(args)
+    if args.vfs:
+        load_configured_vfs(args.vfs)
     prompt = make_prompt(vfs_name_from_path(args.vfs))
     if args.script:
         run_script(args.script, prompt)

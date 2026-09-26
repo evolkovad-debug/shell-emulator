@@ -1,0 +1,18 @@
+{
+  "type": "dir",
+  "children": {
+    "readme.txt": {"type": "file", "content": "Hello, VFS!"},
+    "notes.txt": {"type": "file", "content": "Заметки студента"},
+    "logo.bin": {
+      "type": "file",
+      "encoding": "base64",
+      "content": "iVBORw0KGgo="
+    },
+    "docs": {
+      "type": "dir",
+      "children": {
+        "guide.txt": {"type": "file", "content": "Guide"}
+      }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "type": "dir",
+  "children": {
+    "a.txt": {"type": "folder"}
+  }
+}
