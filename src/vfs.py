@@ -214,3 +214,21 @@ def lookup(vfs, text):
 def path_to_str(parts):
     """Превращает список имён в путь: ['a', 'b'] -> '/a/b'."""
     return SEPARATOR + SEPARATOR.join(parts)
+
+
+def split_path(vfs, text):
+    """Делит путь на (родительский каталог, имя узла). Ошибки — PathError."""
+    parts, node = lookup(vfs, text)
+    if not parts:
+        raise PathError("нельзя применить к корню")
+    parent = node_at(vfs.root, parts[:-1])
+    return parent, parts[-1]
+
+
+def remove(vfs, text, recursive):
+    """Удаляет узел по пути из памяти. Ошибки — PathError."""
+    parent, name = split_path(vfs, text)
+    node = parent.children[name]
+    if isinstance(node, Directory) and node.children and not recursive:
+        raise PathError("каталог не пуст (нужен -r)")
+    del parent.children[name]

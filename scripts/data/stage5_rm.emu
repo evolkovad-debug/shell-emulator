@@ -1,0 +1,14 @@
+# Стартовый скрипт: команда rm (запуск с vfs/deep.json)
+vfs-info
+ls /home/user/docs
+rm /home/user/docs/report.txt
+ls /home/user/docs
+vfs-info
+rm /home/user/docs
+rm -r /home/user/docs
+ls /home/user
+vfs-info
+rm nosuch
+rm /
+rm
+exit

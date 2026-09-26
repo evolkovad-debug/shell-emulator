@@ -6,7 +6,7 @@ import fnmatch
 import getpass
 
 from errors import ShellError
-from vfs import Directory, PathError, describe, get_current, lookup
+from vfs import Directory, PathError, describe, get_current, lookup, remove
 
 EXIT_OK = 0
 ROOT = "/"
@@ -20,6 +20,8 @@ YEAR_ONLY = 1
 MIN_MONTH, MAX_MONTH = 1, 12
 MIN_YEAR, MAX_YEAR = 1, 9999
 LS_OPTIONS = {"-l"}
+RM_OPTIONS = {"-r"}
+MIN_RM_ARGS = 1
 FIND_PREDICATES = {"-name", "-type"}
 FIND_TYPES = {"f", "d"}
 
@@ -199,6 +201,19 @@ def cmd_whoami(args):
         raise ShellError("whoami: не удалось определить имя") from error
 
 
+def cmd_rm(args):
+    """rm [-r] путь...: удаляет узлы из VFS (только в памяти)."""
+    current = require_vfs("rm")
+    options, operands = split_options("rm", args, RM_OPTIONS)
+    if len(operands) < MIN_RM_ARGS:
+        raise ShellError("rm: не указан путь")
+    for text in operands:
+        try:
+            remove(current, text, "-r" in options)
+        except PathError as error:
+            raise ShellError(f"rm: {text}: {error}") from error
+
+
 def cmd_vfs_info(args):
     """Служебная команда: сводка по загруженной VFS (только чтение)."""
     if args:
@@ -219,6 +234,7 @@ COMMANDS = {
     "find": cmd_find,
     "cal": cmd_cal,
     "whoami": cmd_whoami,
+    "rm": cmd_rm,
     "vfs-info": cmd_vfs_info,
     "exit": cmd_exit,
 }
